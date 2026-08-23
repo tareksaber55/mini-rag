@@ -1,6 +1,6 @@
 from .BaseController import BaseController
 from fastapi import UploadFile
-from models import ResponseEnums
+from models import ResponseEnum
 import os
 class ProjectController(BaseController):
     def __init__(self):

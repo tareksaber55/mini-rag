@@ -3,6 +3,8 @@
     "python-envs.defaultPackageManager": "ms-python.python:conda",
     "python.analysis.extraPaths": [
         "./src/controllers",
-        "./src"
+        "./src",
+        "./src/routes",
+        "./src/models"
     ]
 }

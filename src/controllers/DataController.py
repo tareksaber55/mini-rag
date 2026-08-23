@@ -1,6 +1,6 @@
 from .BaseController import BaseController
 from fastapi import UploadFile
-from models import ResponseEnums
+from models import ResponseEnum
 import re , os
 from .ProjectController import ProjectController
 class DataController(BaseController):
@@ -9,10 +9,10 @@ class DataController(BaseController):
         self.size_scale = 1024 * 1024
     def validate_uploading_files(self,file:UploadFile):
         if file.content_type not in self.app_settings.FILE_ALLOWED_TYPES:
-            return False , ResponseEnums.FILE_TYPE_NOT_SUPPORTED.value
+            return False , ResponseEnum.FILE_TYPE_NOT_SUPPORTED.value
         if file.size > self.app_settings.FILE_MAX_SIZE * self.size_scale:
-            return False , ResponseEnums.FILE_SIZE_EXCEED.value
-        return True,ResponseEnums.FILE_VALIDATED_SUCCESS.value
+            return False , ResponseEnum.FILE_SIZE_EXCEED.value
+        return True,ResponseEnum.FILE_VALIDATED_SUCCESS.value
 
     def generate_unique_file_path(self,orig_file_name:str,project_id:str):
         random_key = self.generate_random_string()
