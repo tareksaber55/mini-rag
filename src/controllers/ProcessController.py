@@ -39,10 +39,6 @@ class ProcessController(BaseController):
             length_function = len
         )
 
-        
-
-        
-
         chunks = text_splitter.split_documents(
             file_content
         )

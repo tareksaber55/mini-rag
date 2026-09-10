@@ -42,3 +42,12 @@ Set the Environment Variables Like OPENAI_API_KEY
 ```bash
 $ uvicorn main:app --reload --host 0.0.0.0 --port 5000
 ```
+
+## Run Docker Compose Service
+
+```bash
+$ cd docker
+$ cp .env.example .env
+```
+
+- update ".env" with your credentials
