@@ -9,3 +9,5 @@ class ResponseEnum(Enum):
     FILE_SIZE_EXCEED = 'file_size_exceeded'
     PROCESSING_FAIL = 'file_processing_failed'
     PROCESSING_SUCCESS = 'file_processing_success'
+    NO_FILE_ERROR = 'not_found_files'
+    FILE_ID_ERROR = 'no_file_found_with_this_id'
