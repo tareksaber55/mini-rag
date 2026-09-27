@@ -19,7 +19,7 @@ class CohereProvider(LLMInterface):
 
         self.client = cohere.Client(api_key=self.api_key)
 
-        self.logger = logging.Logger(__name__)
+        self.logger = logging.getLogger(__name__)
 
     def set_generation_model(self,model_id:str):
         self.generation_model_id = model_id
@@ -59,29 +59,35 @@ class CohereProvider(LLMInterface):
             'text':self.process_text(prompt)
         }
 
-    def embed_text(self, text, document_type = None):
+    def embed_texts(self, texts: list, document_type=None):
         if not self.client:
-            self.logger.error('openai client was not set')
+            self.logger.error('cohere client was not set')
             return None
+
         if not self.embedding_model_id:
-            self.logger.error('openai embedding model was not set')
+            self.logger.error('cohere embedding model was not set')
             return None
 
         input_type = CohereEnums.DOCUMENT.value
+
         if document_type == CohereEnums.QUERY.value:
             input_type = CohereEnums.QUERY.value
 
         response = self.client.embed(
             model=self.embedding_model_id,
             input_type=input_type,
-            texts=[text],
+            texts=texts,
             embedding_types=['float']
         )
 
-        if not response or not response.embeddings or not response.embeddings.float_:
-            self.logger.error('error while embedding text with cohere')
+        if (
+            not response
+            or not response.embeddings
+            or not response.embeddings.float_
+        ):
+            self.logger.error('error while embedding texts with cohere')
             return None
 
-        return response.embeddings.float_[0]
+        return response.embeddings.float_
 
             

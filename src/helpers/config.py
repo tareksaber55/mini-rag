@@ -27,7 +27,12 @@ class Settings(BaseSettings):
     DEFAULT_GENERATION_MAX_CHARACTERS : int = None
     DEFAULT_TEMPRETURE : float = None
 
+    # Vector DB
+    VECTOR_DB_BACKEND :str
+    VECTOR_DB_PATH : str
+    VECTOR_DB_DISTANCE_METHOD : str = None
 
+    
     class Config:
         env_file = '.env'
 

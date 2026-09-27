@@ -62,21 +62,26 @@ class OpenAIProvider(LLMInterface):
 
         return response.choices[0].message.content
 
-    def embed_text(self,text:str,document_type:str=None):
+    def embed_texts(self, texts: list, document_type: str = None):
+
         if not self.client:
             self.logger.error('openai client was not set')
             return None
+
         if not self.embedding_model_id:
             self.logger.error('openai embedding model was not set')
             return None
+
         response = self.client.embeddings.create(
             model=self.embedding_model_id,
-            input= text
+            input=texts
         )
-        if not response or not response.data or len(response.data) == 0 or not response.data[0].embedding:
-            self.logger.error('error while embedding text with openai')
+
+        if not response or not response.data:
+            self.logger.error('error while embedding texts with openai')
             return None
-        return response.data[0].embedding
+
+        return [item.embedding for item in response.data]
 
 
     def construct_prompt(self,prompt: str,role: str):

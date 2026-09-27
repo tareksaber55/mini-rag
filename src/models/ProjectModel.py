@@ -58,7 +58,7 @@ class ProjectModel(BaseDataModel):
 
         skip = (page - 1) * page_size
 
-        cursor = (
+        cursor = await (
             self.collection
             .find({})
             .skip(skip)
@@ -67,9 +67,9 @@ class ProjectModel(BaseDataModel):
 
         projects = [
             Project(**document)
-            async for document in cursor
+            for document in cursor
         ]
 
-        return projects, total_pages
+        return projects
 
 

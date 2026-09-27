@@ -1,10 +1,10 @@
 from fastapi import FastAPI
-from routes import base,data
+from routes import base,data,nlp
 from pymongo import AsyncMongoClient
 from contextlib import asynccontextmanager
 from helpers.config import get_settings
 from stores.llm.LLMProviderFactory import LLMProviderFactory
-
+from stores.vectordb.VectorDBProviderFactory import VectorDBProviderFactory
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
@@ -15,12 +15,12 @@ async def lifespan(app: FastAPI):
 
     # LLM Provider Factory
     llm_provider_factory = LLMProviderFactory(
-        config=settings.model_dump()
+        config=settings
     )
 
     # Generation client
     app.generation_client = llm_provider_factory.create(
-        settings.GENERATION_BACKEND
+        provider=settings.GENERATION_BACKEND
     )
     app.generation_client.set_generation_model(
         settings.GENERATION_MODEL_ID
@@ -35,13 +35,19 @@ async def lifespan(app: FastAPI):
         settings.EMBEDDING_MODEL_SIZE
     )
 
+    app.vectordb_client = VectorDBProviderFactory(settings).create(
+        provider=settings.VECTOR_DB_BACKEND
+    )
+    app.vectordb_client.connect()
+
     yield
 
     # Shutdown
     await app.mongo_conn.close()
-
+    app.vectordb_client.disconnect()
 
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(base.base_router)
 app.include_router(data.data_router)
+app.include_router(nlp.nlp_router)

@@ -3,7 +3,7 @@ from .BaseDataModel import BaseDataModel
 from .db_schemes.data_chunk import DataChunk
 from .enums.DataBaseEnum import DataBaseEnum
 from pymongo import InsertOne
-
+import math
 class ChunkModel(BaseDataModel):
     def __init__(self, db_client):
         super().__init__(db_client)
@@ -59,3 +59,18 @@ class ChunkModel(BaseDataModel):
         })
 
         return result.deleted_count
+
+    async def get_project_chunks(self,project_id:ObjectId,
+                                 page:int = 1 , page_size:int = 100):
+        if page < 1 :
+            raise ValueError("page must be greater than or equal to 1")
+        if page_size < 1:
+            raise ValueError("page_size must be greater than or equal to 1")
+        records = await self.collection.find({
+            'chunk_project_id':project_id
+        }).skip((page-1)*page_size).limit(page_size).to_list(length=None)
+
+        return [
+            DataChunk(**record)
+            for record in records
+        ]
