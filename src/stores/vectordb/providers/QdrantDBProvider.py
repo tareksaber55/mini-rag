@@ -3,6 +3,7 @@ from ..VectorDBEnum import DistanceMethodEnums
 from qdrant_client import models,QdrantClient
 import logging
 from typing import List
+from models.db_schemes import RetrievedDocument
 class QdrantDBProvider(VectorDBInterface):
     def __init__(self,db_path: str, distance_method: str):
         self.client = None
@@ -140,11 +141,19 @@ class QdrantDBProvider(VectorDBInterface):
             self.logger.error("Limit must be greater than zero")
             return None
 
-        return self.client.query_points(
+        results =  self.client.query_points(
             collection_name=collection_name,
             query=vector,
             limit=limit
         )
+
+        return [
+            RetrievedDocument(**{
+                'score':result.score,
+                'text':result.payload['text']
+            })
+            for result in results.points
+        ]
 
 
         

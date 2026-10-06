@@ -2,6 +2,7 @@ from ..LLMInterface import LLMInterface
 from ..LLMEnums import OpenAIEnum
 from openai import OpenAI
 import logging
+from ..LLMEnums import OpenAIEnum
 class OpenAIProvider(LLMInterface):
     def __init__(self,api_key:str,base_url:str,
                  default_input_max_characters:int=1000,
@@ -24,6 +25,8 @@ class OpenAIProvider(LLMInterface):
         )
 
         self.logger = logging.getLogger(__name__)
+
+        self.enums = OpenAIEnum
 
     def set_generation_model(self,model_id:str):
         self.generation_model_id = model_id

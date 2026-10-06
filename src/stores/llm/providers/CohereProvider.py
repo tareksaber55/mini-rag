@@ -2,6 +2,7 @@ from ..LLMInterface import LLMInterface
 from ..LLMEnums import CohereEnums
 import cohere
 import logging
+from ..LLMEnums import CohereEnums
 class CohereProvider(LLMInterface):
     def __init__(self,api_key:str,
                  default_input_max_characters:int=1000,
@@ -20,6 +21,8 @@ class CohereProvider(LLMInterface):
         self.client = cohere.Client(api_key=self.api_key)
 
         self.logger = logging.getLogger(__name__)
+
+        self.enums = CohereEnums
 
     def set_generation_model(self,model_id:str):
         self.generation_model_id = model_id

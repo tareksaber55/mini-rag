@@ -1,15 +1,14 @@
 from .BaseController import BaseController
 from models.db_schemes import Project,DataChunk
-from stores.llm.LLMEnums import CohereEnums,DocumentTypeEnum,OpenAIEnum
-from stores.llm.providers import CohereProvider,OpenAIProvider
 import json
 
 class NLPController(BaseController):
-    def __init__(self,vectordb_client,generation_client,embedding_client):
+    def __init__(self,vectordb_client,generation_client,embedding_client,template_parser):
         super().__init__()
         self.vectordb_client = vectordb_client
         self.generation_client = generation_client
         self.embedding_client = embedding_client
+        self.template_parser = template_parser
 
     def create_collection_name(self,project_id:str):
         return f'collection_{project_id}'.strip()
@@ -26,9 +25,7 @@ class NLPController(BaseController):
         for chunk in chunks:
             texts.append(chunk.chunk_text)
             metadatas.append(chunk.chunk_metadata)
-        document_type = DocumentTypeEnum.DOCUMENT.value
-        if isinstance(self.embedding_client,CohereProvider):
-            document_type = CohereEnums.DOCUMENT.value
+        document_type = self.embedding_client.enums.DOCUMENT.value
         vectors = self.embedding_client.embed_texts(texts = texts , document_type = document_type)
         _ = self.vectordb_client.create_collection(
             collection_name = collection_name,
@@ -55,9 +52,7 @@ class NLPController(BaseController):
 
     def search_vector_db_collection(self,project:Project,text:str,limit:int = 5):
         collection_name = self.create_collection_name(project_id=project.project_id)
-        document_type = DocumentTypeEnum.QUERY.value
-        if isinstance(self.embedding_client,CohereProvider):
-            document_type = CohereEnums.QUERY.value
+        document_type = self.embedding_client.enums.QUERY.value
         vector = self.embedding_client.embed_texts(texts = [text],document_type = document_type)[0]
         results = self.vectordb_client.search_by_vector(
             collection_name = collection_name,
@@ -66,6 +61,46 @@ class NLPController(BaseController):
         )
         if not results:
             return False
-        return json.loads( # convert to python object
-            json.dumps(results,default=lambda x: x.__dict__) # convert to json
-        ) 
+        return results
+
+    def answer_rag_question(self,project:Project,query:str,limit:int = 5):
+        retreived_documents = self.search_vector_db_collection(
+            project=project,
+            text=query,
+            limit=limit
+        )
+
+        if not retreived_documents:
+            return None
+
+        system_prompt = self.template_parser.get('rag','system_prompt')
+
+        documents_prompt = '\n'.join([
+            self.template_parser.get('rag','document_prompt',{
+                'doc_num':idx+1,
+                'chunk_text':doc.text
+            })
+            for idx,doc in enumerate(retreived_documents)
+        ])
+
+        footer_prompt = self.template_parser.get('rag','footer_prompt',{
+            'query':query
+        })
+
+
+        chat_history = [
+            self.generation_client.construct_prompt(
+                prompt = system_prompt,
+                role = self.generation_client.enums.SYSTEM.value
+            )
+        ]
+
+        full_prompt = '\n'.join([documents_prompt, footer_prompt])
+
+        answer = self.generation_client.generate_text(
+            prompt=full_prompt,
+            chat_history = chat_history
+        )
+
+        return answer,full_prompt,chat_history
+
