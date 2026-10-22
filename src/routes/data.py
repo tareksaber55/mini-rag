@@ -4,14 +4,13 @@ from helpers.config import get_settings,Settings
 from controllers import DataController,ProjectController,ProcessController
 import os
 import aiofiles
-from models import ResponseEnum
 import logging
 from .schemes.data import ProcessRequest
 from models.ProjectModel import ProjectModel
 from models.ChunkModel import ChunkModel
 from models.db_schemes import DataChunk,Asset
 from models.AssetModel import AssetModel
-from models import AssetTypeEnum
+from models.enums import AssetTypeEnum,ResponseEnum
 
 logger = logging.getLogger('uvicorn.error')
 
@@ -26,7 +25,7 @@ Use POST when the client wants to send data to the server, often to create somet
 '''
 @data_router.post('/upload/{project_id}')
 async def upload_data(request:Request,
-                      project_id:str,
+                      project_id:int,
                       file:UploadFile,
                       app_settings:Settings = Depends(get_settings)
                       ):
@@ -66,7 +65,7 @@ async def upload_data(request:Request,
     )
 
     asset = Asset(
-        asset_project_id=project.id,
+        asset_project_id=project.project_id,
         asset_type = AssetTypeEnum.FILE.value,
         asset_name = file_id,
         asset_size = os.path.getsize(file_path),
@@ -77,12 +76,12 @@ async def upload_data(request:Request,
     return JSONResponse(
         content={
             'signal':ResponseEnum.FILE_UPLOAD_SUCCESS.value,
-            'database_file_id':str(asset_record.id)
+            'database_file_id':str(asset_record.asset_id)
         }
     )
 
 @data_router.post('/process/{project_id}')
-async def process_endpoint(request:Request,project_id:str,process_request:ProcessRequest):
+async def process_endpoint(request:Request,project_id:int,process_request:ProcessRequest):
     project_model = await ProjectModel.create_instance(
             db_client=request.app.db_client
     )
@@ -100,7 +99,7 @@ async def process_endpoint(request:Request,project_id:str,process_request:Proces
     project_files_ids = {}
     if process_request.file_id:
         asset = await asset_model.get_asset_record(
-            asset_project_id=project.id,
+            asset_project_id=project.project_id,
             asset_name=process_request.file_id
         )
 
@@ -112,15 +111,15 @@ async def process_endpoint(request:Request,project_id:str,process_request:Proces
                 }
             )
 
-        project_files_ids[asset.id] = asset.asset_name
+        project_files_ids[asset.asset_id] = asset.asset_name
     else:
         assets = await asset_model.get_all_project_assets(
-            asset_project_id=str(project.id),
+            asset_project_id=project.project_id,
             asset_type=AssetTypeEnum.FILE.value
         )
 
         project_files_ids = {
-            asset.id : asset.asset_name
+            asset.asset_id : asset.asset_name
             for asset in assets
         }
 
@@ -139,7 +138,7 @@ async def process_endpoint(request:Request,project_id:str,process_request:Proces
     no_records = 0
     no_processed_files = 0
     if reset:
-        _ = await chunk_model.delete_chunks_by_project_id(project_id=project.id)
+        _ = await chunk_model.delete_chunks_by_project_id(project_id=project.project_id)
     for asset_id,file_id in project_files_ids.items():  
         file_content = process_controller.get_file_content(file_id=file_id)
         if file_content is None:
@@ -164,7 +163,7 @@ async def process_endpoint(request:Request,project_id:str,process_request:Proces
                 chunk_text = chunk.page_content ,
                 chunk_metadata = chunk.metadata ,
                 chunk_order = i+1,
-                chunk_project_id = project.id,
+                chunk_project_id = project.project_id,
                 chunk_asset_id=asset_id
             )
             for i,chunk in enumerate(file_chunks)

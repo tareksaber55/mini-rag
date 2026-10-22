@@ -1,18 +1,25 @@
 from fastapi import FastAPI
 from routes import base,data,nlp
-from pymongo import AsyncMongoClient
 from contextlib import asynccontextmanager
 from helpers.config import get_settings
 from stores.llm.LLMProviderFactory import LLMProviderFactory
 from stores.vectordb.VectorDBProviderFactory import VectorDBProviderFactory
 from stores.llm.templates.template_parser import TemplateParser
+from sqlalchemy.ext.asyncio import create_async_engine,AsyncSession
+from sqlalchemy.orm import sessionmaker
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
 
-    # MongoDB
-    app.mongo_conn = AsyncMongoClient(settings.MONGODB_URL)
-    app.db_client = app.mongo_conn[settings.MOGODB_DATABASE]
+    postgres_conn = f'postgresql+asyncpg://{settings.POSTGRES_USERNAME}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_MAIN_DATABASE}'
+    # Manages database connectivity and connections
+    app.db_engine = create_async_engine(postgres_conn)
+    # Provides an interface to interact with the database
+    app.db_client = sessionmaker(app.db_engine,
+                                 class_=AsyncSession,
+                                 expire_on_commit=False
+                                )
+    
 
     # LLM Provider Factory
     llm_provider_factory = LLMProviderFactory(
@@ -45,7 +52,7 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    await app.mongo_conn.close()
+    await app.db_engine.dispose()
     app.vectordb_client.disconnect()
 
 app = FastAPI(lifespan=lifespan)

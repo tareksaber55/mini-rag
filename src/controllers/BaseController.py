@@ -1,9 +1,9 @@
 import random
 import string
-
 from helpers.config import get_settings,Settings
 import os
 from pathlib import Path
+
 class BaseController:
     def __init__(self):
         self.app_settings = get_settings()
